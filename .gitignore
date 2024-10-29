@@ -2,3 +2,5 @@ pw.py
 /venv/
 .streamlit/secrets.toml
 /.DS_Store/
+.DS_Store
+.DS_Store?
