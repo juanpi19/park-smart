@@ -6,7 +6,7 @@ import geocoder
 import pickle as pk
 from datetime import datetime, timedelta
 import time
-from utility import get_coordinates, \
+from utils import get_coordinates, \
                     calculates_distance_and_driving_time_from_point_a_to_point_b, \
                     api_request, \
                     haversine, \
@@ -34,8 +34,10 @@ def keeping_state(from_, to):
     return from_, to
 
 # Loading ML model from pickle file
-with open('xgb_model_v1.pkl', 'rb') as pickle_file:
+with open('models/xgb_model_v1.pkl', 'rb') as pickle_file:
     xgb_model = pk.load(pickle_file)
+
+xgb_model.save_model('models/xgb_model_v1.json')
 
 
 # This dictionary contains all the encoded values from the model training 

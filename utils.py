@@ -3,16 +3,13 @@ import pandas as pd
 import numpy as np
 import pickle as pk
 from sodapy import Socrata
-# from pw import app_token, username, password, weather_key_api_endpoint, bing_map_api_endpoint, parking_meter_occupancy_api_endpoint
 import requests
 import streamlit as st
 from datetime import datetime
 import pytz  # for working with time zones
 from math import radians, sin, cos, sqrt, atan2
-# import webbrowser
 from streamlit.components.v1 import html
 from streamlit_js_eval import  get_geolocation
-
 
 
 app_token = st.secrets['app_token']
@@ -21,15 +18,14 @@ password = st.secrets['password']
 weather_key_api_endpoint = st.secrets['weather_key_api_endpoint']
 bing_map_api_endpoint = st.secrets['bing_map_api_endpoint']
 parking_meter_occupancy_api_endpoint = st.secrets['parking_meter_occupancy_api_endpoint']
-inventory_df = pd.read_csv("inventory_df.csv")
+inventory_df = pd.read_csv("models/inventory_df.csv")
 
 # Read data from the pickle file
-with open('mapping_dictionary.pkl', 'rb') as pickle_file:
+with open('models/mapping_dictionary.pkl', 'rb') as pickle_file:
     mapping_dict = pk.load(pickle_file)
 
-
-coordinates_mapping_df = pd.read_csv('coordinates_mapping_compressed.csv')
-avg_time_in_occupancy_matrix = pd.read_csv("avg_time_in_occupancy_matrix.csv")
+coordinates_mapping_df = pd.read_csv('models/coordinates_mapping_compressed.csv')
+avg_time_in_occupancy_matrix = pd.read_csv("models/avg_time_in_occupancy_matrix.csv")
 
 
 
@@ -39,60 +35,42 @@ class preprocessing:
     def dict_to_columns_lat_long(dict_):
         return dict_['latitude'], dict_['longitude'] 
 
-
+#---------------------- api_request
 def api_request(api_endpoint: str, api_name: str) -> pd.DataFrame:
     '''
     This is the function that makes API requests
-
     Ex: api_request(api_endpoint=parking_meter_inventory_api_endpoint, api_name='Socrata')
-
     Ex 2: df = api_request(api_endpoint=parking_meter_occupancy_api_endpoint, api_name='Socrata')
           ingests_parking_meter_live_data_to_parking_meter_occupancy_live_t(df) 
 
-    returns: df - which contains API data
+    returns: df - API data
     '''
     if api_name.lower().strip() == 'socrata':
-
-        client = Socrata('data.lacity.org',
-                 app_token,
-                 username=username,
-                 password=password)
-        
+        client = Socrata('data.lacity.org', app_token, username=username, password=password)
         result = client.get(api_endpoint, limit=50000)
-
         df = pd.DataFrame.from_records(result)
 
         if api_endpoint == 'e7h6-4a3e':
             df['eventtime'] = pd.to_datetime(df['eventtime']).dt.tz_localize('UTC')
-
         return df
     
     elif api_name.lower().strip() == 'weather':
-
         url = 'https://api.openweathermap.org/data/2.5/weather'
         params = {'APPID': api_endpoint, 'q': 'Los Angeles', 'units': 'celsius'}
         response = requests.get(url, params=params)
         weather = response.json()
-        
         temp = weather['main']['temp'] - 273.15
         condition = weather['weather'][0]['description']
         df = pd.DataFrame({'condition': condition, 'temp': temp, 'eventtime_utc': datetime.now(pytz.utc).isoformat()}, index=[1])
 
-        return df #, weather #pd.DataFrame({'condition': condition, 'temp': temp}, index=[1])
+        return df 
 
-####################
-# Bing Map Functions
-####################
+
+#---------------------- Bing Map Functions
 
 def get_coordinates(place: str) -> str:
     '''
-    
-    Inputs a place
-    Ex: "USC Marshall School of Business"
-    
-    Ouputs the coodinates as a string
-    Ex: '34.01878357,-118.28292847'
-    
+    Inputs a place ("USC Marshall School of Business") Ouputs the coodinates as a string ('34.01878357,-118.28292847')
     '''
     
     # Replace with your Bing Maps API key
@@ -121,7 +99,7 @@ def get_coordinates(place: str) -> str:
         raise Exception("Could not parse coordinates")
 
 
-
+#----------------------
 def calculates_distance_and_driving_time_from_point_a_to_point_b(from_: str, to: str) -> tuple:
     
     '''
@@ -168,20 +146,12 @@ def calculates_distance_and_driving_time_from_point_a_to_point_b(from_: str, to:
     else:
         raise Exception(f"Error: {response.status_code} - {data['errorDetails'][0]['message']}")
 
-
-
-
-##### Haversine function
+#---------------------- Haversine function
 
 def haversine(lat1, lon1, lat2, lon2) -> int:
     '''
-
     This function takes two coordinates and calculates the haversine distance in meters
-
-
-    returns: int
     '''
-
     # Radius of the Earth in meters
     R = 6371000.0
 
@@ -203,9 +173,7 @@ def haversine(lat1, lon1, lat2, lon2) -> int:
 
 
 
-###############
-
-
+#----------------------
 def fetch_autocomplete_suggestions(query, user_location=None, 
                                    user_circular_map_view=None, 
                                    user_map_view=None, 
@@ -266,28 +234,17 @@ def fetch_autocomplete_suggestions(query, user_location=None,
 
 
 
-
+#----------------------
 def joins_street_parking_inventory_with_live_api_data() -> pd.DataFrame:
     '''
     when this function is called, it pings the live paking meter API and joins it with the parking meter inventory
     it then performs some cleaning and returns everything as a dataframe
 
     returns: df
-    
     '''
-    # conn = sqlite3.connect('/Users/juanherrera/Desktop/traffic.db')
-    # cursor = conn.cursor()
-    # q = '''SELECT *
-    #         FROM metered_parking_inventory  mi
-    #         '''
-
-
     api_df = api_request(api_endpoint=parking_meter_occupancy_api_endpoint, api_name='Socrata')
     api_weather_df = api_request(api_endpoint=weather_key_api_endpoint, api_name='weather')
     
-    # ingests_parking_meter_live_data_to_parking_meter_occupancy_live_t(api_df) 
-    # ingests_weather_data_to_weather_t(api_weather_df)
-
     # inventory_df = pd.read_sql_query(q, conn)
     final_df = pd.merge(api_df, inventory_df, how='inner', left_on='spaceid', right_on='space_id')
 
@@ -296,11 +253,8 @@ def joins_street_parking_inventory_with_live_api_data() -> pd.DataFrame:
     return final_df
 
 
-#############################
-######### MODEL FEATURES
-##################################
 
-
+#---------------------- Model Features
 def transform_ml_model_features_input(SpaceID: str,
                                     OccupancyState: str,
                                     block_face: str,
@@ -361,7 +315,7 @@ def transform_ml_model_features_input(SpaceID: str,
 
 
 
-
+#----------------------
 def collecting_model_features(api_endpoint_weather: str) -> dict: 
     '''
     This function calls the weather API to collect all the weather data that the ML model needs and it also calculates the time data
@@ -442,14 +396,11 @@ def collecting_model_features(api_endpoint_weather: str) -> dict:
     return final_dict
 
 
-
+#----------------------
 def calculate_avg_time_occupancy_previous_parkers(space_id: str):
-
     '''
     Takes a list of Space ID and calculates the avg time that the previous 3 and 6 people were parked
-    
     '''
-
     # calculating avg time
     day = datetime.now().day 
     
@@ -468,7 +419,7 @@ def calculate_avg_time_occupancy_previous_parkers(space_id: str):
     return avg_time_in_occupancy_past_3, avg_time_in_occupancy_past_6
 
 
-# Opens up new tab with the right address
+#---------------------- Opens up new tab with the right address
 
 def open_google_maps(from_place, to_place):
     '''
@@ -483,13 +434,15 @@ def open_google_maps(from_place, to_place):
     """ % (google_maps_url)
     html(open_script)
 
-    
+#---------------------- Gets Location
 def get_user_loc():
     '''
     gets user location
     '''
     location = get_geolocation()
     return location
+
+
 
 
 
