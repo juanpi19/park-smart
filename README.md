@@ -66,13 +66,6 @@ docker run -p 8501:8501 --env-file .env park-smart
 
 The application will be available at `http://localhost:8501`
 
-### Option 2: Local Development Setup
-
-1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/park-smart.git
-cd park-smart
-```
 
 ## 🐳 Docker Configuration
 
