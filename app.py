@@ -37,7 +37,7 @@ def keeping_state(from_, to):
 with open('models/xgb_model_v1.pkl', 'rb') as pickle_file:
     xgb_model = pk.load(pickle_file)
 
-xgb_model.save_model('models/xgb_model_v1.json')
+
 
 
 # This dictionary contains all the encoded values from the model training 
