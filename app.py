@@ -41,7 +41,7 @@ with open('models/xgb_model_v1.pkl', 'rb') as pickle_file:
 
 
 # This dictionary contains all the encoded values from the model training 
-with open('mapping_dictionary.pkl', 'rb') as pickle_file:
+with open('models/mapping_dictionary.pkl', 'rb') as pickle_file:
     mapping_dict = pk.load(pickle_file)
 
 
